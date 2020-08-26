@@ -3,7 +3,6 @@ sdk_dir = $(top_dir)/
 install_dir = $(top_dir)/install
 
 CXX = g++
-LD = ld
 
 INC_DIR += -I$(sdk_dir)/include
 

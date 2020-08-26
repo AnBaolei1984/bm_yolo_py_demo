@@ -463,12 +463,11 @@ void process(
   proc_info.anchor_num_ = 3;
   proc_info.threshold_nms_ = 0.45;
 
-  int* net_shape_int = reinterpret_cast<int*>(net_shape);
+  int* net_shape_int = (int*)net_shape;
   proc_info.net_w_ = net_shape_int[3];
   proc_info.net_h_ = net_shape_int[2];
-  proc_info.biases_ = reinterpret_cast<float*>(anchor_biases);
-
-  int* input_shape_ptr = reinterpret_cast<int*>(input_shape);
+  proc_info.biases_ = (float*)anchor_biases;
+  int* input_shape_ptr = (int*)input_shape;
   std::vector<int> tensor_sizes;
   for (size_t i = 0; i < input_tensor_num; i++) {
     int length = 1;
@@ -479,21 +478,20 @@ void process(
     proc_info.fm_size_[i * 2] = input_shape_ptr[i * 4 + 3];
     proc_info.fm_size_[i * 2 + 1] = input_shape_ptr[i * 4 + 2];
   }
-
   std::vector<float*> f_inputs;
   for(size_t i = 0; i < input_tensor_num; i++) {
-    f_inputs.push_back(reinterpret_cast<float*>(inputs[i]));
+    f_inputs.push_back((float*)inputs[i]);
   }
   int batch_size =  net_shape_int[0];
-  float* out_results = reinterpret_cast<float*>(results);
-  int* i_obj_num = reinterpret_cast<int*>(obj_num);
+  float* out_results = (float*)results;
+  int* i_obj_num = (int*)obj_num;
   *i_obj_num = 0;
   for (size_t i = 0; i < batch_size; i++) {
     int nboxes = 0;
     std::vector<float*> blobs;
     for(size_t j = 0; j < input_tensor_num; j++) {
-      blobs.push_back(reinterpret_cast<float*>(
-                            f_inputs[j]) + tensor_sizes[j] * i);
+      float* tmp_ptr = (float*)f_inputs[j];
+      blobs.push_back(tmp_ptr + tensor_sizes[j] * i);
     }
     detection* dets = get_detections(blobs, proc_info,
                 img_width, img_height, &nboxes);

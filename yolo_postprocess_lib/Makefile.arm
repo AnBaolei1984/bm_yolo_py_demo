@@ -4,35 +4,29 @@ install_dir = $(top_dir)/install
 
 CXX = aarch64-linux-gnu-g++
 
-INC_DIR = -I$(sdk_dir)/include/third_party/boost/include
-INC_DIR += -I$(sdk_dir)/include/opencv/opencv4
-INC_DIR += -I$(sdk_dir)/include/ffmpeg
-INC_DIR += -I$(sdk_dir)/include/bmruntime
-INC_DIR += -I$(sdk_dir)/include/bmlib
 INC_DIR += -I$(sdk_dir)/include
-CXXFLAGS := -g -O2  -Wall -std=c++11 $(INC_DIR)
-CXXFLAGS += -DBM_VPP_ENABLE
+
+CXXFLAGS := -g -O2 -fPIC -Wall -std=c++11 $(INC_DIR)
+LOCAL_MEM_ADDRWIDTH           = 19
+CXXFLAGS += -DCONFIG_LOCAL_MEM_ADDRWIDTH=$(LOCAL_MEM_ADDRWIDTH)
 
 
-LDLIBS := -lbmrt -lbmlib -lbmcv -ldl \
-	-lopencv_core -lopencv_imgproc -lopencv_imgcodecs -lopencv_videoio \
-	-lbmvideo -lswresample -lswscale -lavformat -lavutil \
-	-lboost_system -lboost_filesystem -lpthread -lbmjpuapi -lbmjpulite
 
-LIB_DIR = -L$(sdk_dir)/lib/thirdparty/soc
-LIB_DIR += -L$(sdk_dir)/lib/bmnn/soc
-LIB_DIR += -L$(sdk_dir)/lib/opencv/soc -L$(sdk_dir)/lib/ffmpeg/soc -L$(sdk_dir)/lib/decode/soc
-LDFLAGS = -Wl,-rpath=$(sdk_dir)/lib/bmnn/soc
-LDFLAGS += -Wl,-rpath=$(sdk_dir)/lib/opencv/soc
-LDFLAGS += -Wl,-rpath=$(sdk_dir)/lib/ffmpeg/soc
-LDFLAGS += -Wl,-rpath=$(sdk_dir)/lib/decode/soc
-LDFLAGS += $(LIB_DIR)
+LDLIBS := -lpthread -ldl
 
-all: yolo_test
+SOURCE:=$(wildcard *.cpp)
+OBJS:=$(patsubst %.cpp,%.o,$(SOURCE))
+TARGET_LIB   = libYoloPostProcess.so 
 
-yolo_test: main.cpp yolov3.cpp
-	$(CXX) $^ $(CXXFLAGS) $(LDLIBS) $(LDFLAGS) -o $@
+
+all:$(OBJS)
+	echo $(OBJS)
+	$(CXX) -shared -fPIC -o $(TARGET_LIB) $(OBJS)  $(LDLIBS) 
+ 
+%.o:%.cpp
+	@echo Compiling $< ...
+	$(CXX) -c $(CXXFLAGS) $< -o $*.o
 
 clean:
-	rm -f yolo_test
+	rm -f *.o *.so
 
