@@ -1,0 +1,31 @@
+top_dir = ../../..
+sdk_dir = $(top_dir)/
+install_dir = $(top_dir)/install
+
+CXX = g++
+LD = ld
+
+INC_DIR += -I$(sdk_dir)/include
+
+CXXFLAGS := -g -fPIC -lpthread -O2 -Wall -std=c++11 $(INC_DIR)
+LOCAL_MEM_ADDRWIDTH           ?= 19
+CXXFLAGS += -DCONFIG_LOCAL_MEM_ADDRWIDTH=$(LOCAL_MEM_ADDRWIDTH)
+
+LDLIBS := -lpthread -ldl
+
+SOURCE:=$(wildcard *.cpp)
+OBJS:=$(patsubst %.cpp,%.o,$(SOURCE))
+TARGET_LIB   = libYoloPostProcess.so 
+
+
+all:$(OBJS)
+	echo $(OBJS)
+	$(CXX) -shared -fPIC -o $(TARGET_LIB) $(OBJS)  $(LDLIBS) 
+ 
+%.o:%.cpp
+	@echo Compiling $< ...
+	$(CXX) -c $(CXXFLAGS) $< -o $*.o
+
+clean:
+	rm -f *.o *.so
+
