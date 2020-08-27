@@ -63,7 +63,7 @@ class Net:
   input_name_ = 0
   lib_post_process_ = 0
   input_dtype_ = 0
-  dbg_tensor_ = 0
+
   def __init__(self, bmodel_path, tpu_id):
     # init Engine
     Net.engine_ = sail.Engine(tpu_id)
@@ -115,28 +115,36 @@ class Net:
     return [obj[i : i + sec] for i in range(0, len(obj), sec)]
 
   def detect(self, video_path):
+    # open a video to be decoded
     decoder = sail.Decoder(video_path, True, Net.tpu_id_)
     frame_id = 0
     while 1:
       img = sail.BMImage()
+      # decode a frame from video
       ret = decoder.read(Net.handle_, img)
       if ret != 0:
         print("Finished to read the video!");
         return
 
+      # preprocess image for inference
       img_proceesed = sail.BMImage(Net.handle_, Net.input_shapes_[Net.input_name_][2],
                         Net.input_shapes_[Net.input_name_][3],
                         sail.Format.FORMAT_RGB_PLANAR, Net.img_dtype_)
       Net.preprocessor_.process(img,
           img_proceesed, Net.input_shapes_[Net.input_name_][2], Net.input_shapes_[Net.input_name_][3])
       Net.bmcv_.bm_image_to_tensor(img_proceesed, Net.input_tensors_[Net.input_name_])
+
+      # do inference 
       Net.engine_.process(Net.graph_name_,
               Net.input_tensors_, Net.input_shapes_, Net.output_tensors_)
 
+      # post process
       class_num = 80
       score_threshold = 0.5
       anchors = [12, 16, 19, 36, 40, 28, 36, 75,
                             76, 55, 72, 146, 142, 110, 192, 243, 459, 401]
+      top_k = 200
+
       anchors = np.array(anchors)
       anchors = anchors.astype('float32') 
       anchors = anchors.ctypes.data_as(ctypes.c_char_p)
@@ -156,7 +164,6 @@ class Net:
         output_data = Net.output_tensors_[Net.output_names_[i]].pysys_data()
         Net.post_process_inputs_[i] = output_data[0]
 
-      top_k = 200
       dets = ctypes.create_string_buffer(4 * 7 * top_k)
       obj_num = ctypes.create_string_buffer(4)
 
@@ -165,11 +172,15 @@ class Net:
                      ctypes.c_float(score_threshold),
                      class_num, anchors,
                      img.width(), img.height(), top_k, dets, obj_num)
+
+      # get the detect results
+      # batch_id, class_id, score, left, top, right, bottom
       i_obj_num = Net.cut(obj_num, 4)
       i_obj_num = struct.unpack('<i', struct.pack('4B', *i_obj_num[0]))[0]
       i_obj_num = int(i_obj_num)
-
       dets = Net.cut(dets, 4)
+
+      # draw detect results
       for i in range(0, i_obj_num * 7, 7): 
         class_id = struct.unpack('<f', struct.pack('4B', *dets[i + 1]))[0]
         score = struct.unpack('<f', struct.pack('4B', *dets[i + 2]))[0]
