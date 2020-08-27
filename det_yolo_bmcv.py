@@ -20,6 +20,7 @@ import numpy as np
 import sophon.sail as sail
 import ctypes
 import struct
+import time
 
 class PreProcessor:
   """ Preprocessing class.
@@ -61,7 +62,8 @@ class Net:
   bmcv_ = 0
   input_name_ = 0
   lib_post_process_ = 0
-  input_dtype = 0
+  input_dtype_ = 0
+  dbg_tensor_ = 0
   def __init__(self, bmodel_path, tpu_id):
     # init Engine
     Net.engine_ = sail.Engine(tpu_id)
@@ -86,6 +88,7 @@ class Net:
     for i in range(len(Net.output_names_)): 
       Net.output_shapes_[Net.output_names_[i]] = Net.engine_.get_output_shape(Net.graph_name_, Net.output_names_[i])
       output_dtype = Net.engine_.get_output_dtype(Net.graph_name_, Net.output_names_[i])
+      print (Net.output_shapes_[Net.output_names_[i]])
       output = sail.Tensor(Net.handle_, Net.output_shapes_[Net.output_names_[i]], output_dtype, True, True)
       Net.output_tensors_[Net.output_names_[i]] = output
       for j in range(4): 
@@ -94,7 +97,7 @@ class Net:
     print (Net.output_shapes_)
 
     # set io_mode
-    Net.engine_.set_io_mode(Net.graph_name_, sail.IOMode.SYSO)
+    Net.engine_.set_io_mode(Net.graph_name_, sail.IOMode.SYSIO)
     Net.bmcv_ = sail.Bmcv(Net.handle_)
     Net.img_dtype_ = Net.bmcv_.get_bm_image_data_format(input_dtype)
     scale = Net.engine_.get_input_scale(Net.graph_name_, input_names[0])
@@ -120,6 +123,7 @@ class Net:
       if ret != 0:
         print("Finished to read the video!");
         return
+
       img_proceesed = sail.BMImage(Net.handle_, Net.input_shapes_[Net.input_name_][2],
                         Net.input_shapes_[Net.input_name_][3],
                         sail.Format.FORMAT_RGB_PLANAR, Net.img_dtype_)
@@ -146,17 +150,16 @@ class Net:
       output_shape = output_shape.astype('int32')
       output_shape = output_shape.ctypes.data_as(ctypes.c_char_p)
 
-      CCHAR_P_INPUT = len(Net.output_tensors_) * ctypes.c_char_p
-      Net.post_process_inputs_ = CCHAR_P_INPUT()
+      CLONG_P_INPUT = len(Net.output_tensors_) * ctypes.c_long
+      Net.post_process_inputs_ = CLONG_P_INPUT()
       for i in range(len(Net.output_tensors_)):
-        output_data = Net.output_tensors_[Net.output_names_[i]].asnumpy()
-        output_data = output_data.astype('float32')
-        output_data = output_data.ctypes.data_as(ctypes.c_char_p)
-        Net.post_process_inputs_[i] = output_data
+        output_data = Net.output_tensors_[Net.output_names_[i]].pysys_data()
+        Net.post_process_inputs_[i] = output_data[0]
 
       top_k = 200
       dets = ctypes.create_string_buffer(4 * 7 * top_k)
       obj_num = ctypes.create_string_buffer(4)
+
       Net.lib_post_process_.process(Net.post_process_inputs_,
                      net_shape, output_shape, output_tensor_num,
                      ctypes.c_float(score_threshold),

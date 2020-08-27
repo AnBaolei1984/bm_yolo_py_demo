@@ -79,7 +79,7 @@ typedef struct __tag_st_process_info{
 
 extern "C" {
   void process(
-         char* inputs[],
+         long inputs[],
          char* net_shape,
          char* input_shape,
          int input_tensor_num,

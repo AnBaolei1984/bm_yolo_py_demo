@@ -444,7 +444,7 @@ static std::vector<yolov3_DetectRect> detection_yolov3_process(
 }
 
 void process(
-         char* inputs[],
+         long inputs[],
          char* net_shape,
          char* input_shape,
          int input_tensor_num,
@@ -480,7 +480,8 @@ void process(
   }
   std::vector<float*> f_inputs;
   for(size_t i = 0; i < input_tensor_num; i++) {
-    f_inputs.push_back((float*)inputs[i]);
+    long ptr = (long)inputs[i];
+    f_inputs.push_back((float*)ptr);
   }
   int batch_size =  net_shape_int[0];
   float* out_results = (float*)results;
