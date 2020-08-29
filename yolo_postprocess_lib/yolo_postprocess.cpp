@@ -83,6 +83,7 @@ static void do_nms_sort(
 
 static layer make_yolo_layer(
     const st_process_info& proc_info,
+    int    mask_index,
     int    batch,
     int    w,
     int    h,
@@ -103,27 +104,14 @@ static layer make_yolo_layer(
   l.inputs = l.w * l.h * l.c;
   l.biases = reinterpret_cast<float*>(calloc(total * 2, sizeof(float)));
   for (int i = 0; i < total * 2; ++i) {
-    l.biases[i] = proc_info.biases_[i];  /* init the anchor size with pre value */
+    l.biases[i] = proc_info.biases_[i];
   }
 
   l.mask = reinterpret_cast<int*>(calloc(n, sizeof(int)));
-  if (l.w == 13 || l.w == 19 || l.w == 20) {
-    int j = proc_info.anchor_num_ * 2;
-    for (int i = 0; i < l.n; ++i) {
-      l.mask[i] = j++;
-    }
-  } else if (l.w == 26 || l.w == 38 || l.w == 40) {
-    int j = proc_info.anchor_num_;
-    for (int i = 0; i < l.n; ++i) {
-      l.mask[i] = j++;
-    }
-  } else if (l.w == 52 || l.w == 76 || l.w == 80) {
-    int j = 0;
-    for (int i = 0; i < l.n; ++i) {
-      l.mask[i] = j++;
-    }
+  for (int i = 0; i < l.n; ++i) {
+      l.mask[i] = proc_info.masks_[mask_index];
+      mask_index += 1;
   }
-
   l.outputs = l.inputs;
   l.output = reinterpret_cast<float*>(calloc(batch* l.outputs, sizeof(float)));
   return l;
@@ -354,8 +342,8 @@ static detection* get_detections(
   std::vector<layer> layers_params;
   layers_params.clear();
   for (unsigned int i = 0; i < blobs.size(); ++i) {
-    layer l_params = make_yolo_layer(proc_info, 1, proc_info.fm_size_[2 * i],
-        proc_info.fm_size_[2 * i + 1], proc_info.anchor_num_, 3 * proc_info.anchor_num_, classes);
+    layer l_params = make_yolo_layer(proc_info, proc_info.anchor_num_ * i, 1, proc_info.fm_size_[2 * i],
+        proc_info.fm_size_[2 * i + 1], proc_info.anchor_num_, proc_info.biases_num_ / 2, classes);
     layers_params.push_back(l_params);
     forward_yolo_layer(blobs[i], l_params);  /* blobs[i] host_mem data */
   }
@@ -451,6 +439,8 @@ void process(
          float thresh_hold,
          int class_num,
          char* anchor_biases,
+         char* masks,
+         int anchor_biases_num,
          int img_width,
          int img_height,
          int top_k,
@@ -467,6 +457,8 @@ void process(
   proc_info.net_w_ = net_shape_int[3];
   proc_info.net_h_ = net_shape_int[2];
   proc_info.biases_ = (float*)anchor_biases;
+  proc_info.biases_num_ = anchor_biases_num;
+  proc_info.masks_ = (int*)masks;
   int* input_shape_ptr = (int*)input_shape;
   std::vector<int> tensor_sizes;
   for (size_t i = 0; i < input_tensor_num; i++) {

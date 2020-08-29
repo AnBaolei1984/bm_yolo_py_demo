@@ -67,9 +67,11 @@ struct layer {
 };
 
 typedef struct __tag_st_process_info{
-  int anchor_num_;
   float* biases_;
+  int* masks_;
+  int biases_num_;
   int classes_num_;
+  int anchor_num_;
   float threshold_nms_;
   float threshold_prob_;
   int fm_size_[6];
@@ -86,6 +88,8 @@ extern "C" {
          float thresh_hold,
          int class_num,
          char* anchor_biases,
+         char* masks,
+         int anchor_biases_num,
          int img_width,
          int img_height,
          int top_k,

@@ -139,15 +139,18 @@ class Net:
               Net.input_tensors_, Net.input_shapes_, Net.output_tensors_)
 
       # post process
+      # set param for diffrent model
       class_num = 80
       score_threshold = 0.5
-      anchors = [12, 16, 19, 36, 40, 28, 36, 75,
-                            76, 55, 72, 146, 142, 110, 192, 243, 459, 401]
       top_k = 200
+      anchor_biases = np.array([12, 16, 19, 36, 40, 28, 36, 75,
+                            76, 55, 72, 146, 142, 110, 192, 243, 459, 401], dtype = np.float32)
+      anchor_biases_len = anchor_biases.shape[0]
+      anchor_biases = anchor_biases.ctypes.data_as(ctypes.c_char_p)
 
-      anchors = np.array(anchors)
-      anchors = anchors.astype('float32') 
-      anchors = anchors.ctypes.data_as(ctypes.c_char_p)
+      masks = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8], dtype = np.int32)
+      masks = masks.ctypes.data_as(ctypes.c_char_p)
+      # end set param for diffrent model
 
       net_shape = np.array(Net.input_shapes_[Net.input_name_])
       net_shape = net_shape.astype('int32')
@@ -170,7 +173,7 @@ class Net:
       Net.lib_post_process_.process(Net.post_process_inputs_,
                      net_shape, output_shape, output_tensor_num,
                      ctypes.c_float(score_threshold),
-                     class_num, anchors,
+                     class_num, anchor_biases, masks, anchor_biases_len,
                      img.width(), img.height(), top_k, dets, obj_num)
 
       # get the detect results
