@@ -6,7 +6,7 @@ python版本支持 3.5 - 3.8
 
 1. 安装Sophon Inference的python包
 
-   a) 在sdk目录find -name *\sophon*\.whl
+   a) 在sdk目录find -name *sophon*.whl
       
      选择对应的whl，se5、sm5选择./lib/sail/python3/arm_pcie里的轮子，sc5板卡选择./lib/sail/python3/pcie目录里的轮子。根据自己的python版本选择对应的轮子。
      
