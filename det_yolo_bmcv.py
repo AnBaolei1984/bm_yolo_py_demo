@@ -40,10 +40,8 @@ class PreProcessor:
     Returns:
       None
     """
-    tmp = self.bmcv.vpp_resize(input, width, height)
-    self.bmcv.convert_to(tmp, output, ((self.ab[0], self.ab[1]), \
-                                       (self.ab[2], self.ab[3]), \
-                                       (self.ab[4], self.ab[5])))
+
+    self.bmcv.vpp_resize(input, output,  width, height)
 
 class Net:
   input_shapes_ = {}
@@ -127,11 +125,23 @@ class Net:
         return
 
       # preprocess image for inference
+      tmp = sail.BMImage(Net.handle_, Net.input_shapes_[Net.input_name_][2],
+                        Net.input_shapes_[Net.input_name_][3],
+                        sail.Format.FORMAT_RGB_PLANAR, img.dtype())
       img_proceesed = sail.BMImage(Net.handle_, Net.input_shapes_[Net.input_name_][2],
                         Net.input_shapes_[Net.input_name_][3],
-                        sail.Format.FORMAT_RGB_PLANAR, Net.img_dtype_)
+                        sail.Format.FORMAT_RGB_PLANAR, img.dtype())
+
       Net.preprocessor_.process(img,
-          img_proceesed, Net.input_shapes_[Net.input_name_][2], Net.input_shapes_[Net.input_name_][3])
+          tmp, Net.input_shapes_[Net.input_name_][2], Net.input_shapes_[Net.input_name_][3])
+
+      Net.bmcv_.convert_to(tmp, img_proceesed, ((Net.preprocessor_.ab[0], Net.preprocessor_.ab[1]), \
+                                                           (Net.preprocessor_.ab[2], Net.preprocessor_.ab[3]), \
+                                                           (Net.preprocessor_.ab[4], Net.preprocessor_.ab[5])))
+
+
+
+
       Net.bmcv_.bm_image_to_tensor(img_proceesed, Net.input_tensors_[Net.input_name_])
 
       # do inference 
