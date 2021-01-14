@@ -130,18 +130,13 @@ class Net:
                         sail.Format.FORMAT_RGB_PLANAR, img.dtype())
       img_proceesed = sail.BMImage(Net.handle_, Net.input_shapes_[Net.input_name_][2],
                         Net.input_shapes_[Net.input_name_][3],
-                        sail.Format.FORMAT_RGB_PLANAR, img.dtype())
-
+                        sail.Format.FORMAT_RGB_PLANAR, Net.img_dtype_)
       Net.preprocessor_.process(img,
           tmp, Net.input_shapes_[Net.input_name_][2], Net.input_shapes_[Net.input_name_][3])
 
       Net.bmcv_.convert_to(tmp, img_proceesed, ((Net.preprocessor_.ab[0], Net.preprocessor_.ab[1]), \
                                                            (Net.preprocessor_.ab[2], Net.preprocessor_.ab[3]), \
                                                            (Net.preprocessor_.ab[4], Net.preprocessor_.ab[5])))
-
-
-
-
       Net.bmcv_.bm_image_to_tensor(img_proceesed, Net.input_tensors_[Net.input_name_])
 
       # do inference 
